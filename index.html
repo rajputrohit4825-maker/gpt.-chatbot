@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GPC Bhairunda Chatbot — सहायक</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+  :root{--bg:#0f172a;--card:#1e293b;--accent:#38bdf8;--accent2:#a78bfa;--user:#2563eb;--bot:#334155;--text:#e2e8f0}
+  *{box-sizing:border-box;margin:0;padding:0;font-family:'Segoe UI',system-ui,sans-serif}
+  body{background:linear-gradient(135deg,#0f172a,#1e1b4b);color:var(--text);height:100vh;display:flex;flex-direction:column}
+  header{padding:14px 20px;background:rgba(30,41,59,.9);backdrop-filter:blur(6px);display:flex;align-items:center;gap:12px;border-bottom:1px solid #334155}
+  .logo{width:42px;height:42px;border-radius:12px;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-size:22px}
+  header h1{font-size:17px}header p{font-size:12px;color:#94a3b8}
+  #chat{flex:1;overflow-y:auto;padding:20px;display:flex;flex-direction:column;gap:12px}
+  .msg{max-width:78%;padding:12px 16px;border-radius:16px;line-height:1.55;font-size:14.5px;white-space:pre-wrap;animation:pop .25s ease}
+  .bot{align-self:flex-start;background:var(--bot);border-bottom-left-radius:4px}
+  .user{align-self:flex-end;background:var(--user);border-bottom-right-radius:4px}
+  .msg b{color:var(--accent)}
+  .quick{display:flex;flex-wrap:wrap;gap:8px;padding:0 20px 10px}
+  .quick button{background:#334155;border:1px solid #475569;color:var(--text);padding:7px 13px;border-radius:20px;font-size:12.5px;cursor:pointer;transition:.2s}
+  .quick button:hover{background:var(--accent);color:#0f172a}
+  .inputbar{display:flex;gap:10px;padding:14px 20px;background:rgba(30,41,59,.95)}
+  .inputbar input{flex:1;padding:12px 16px;border-radius:12px;border:1px solid #475569;background:#0f172a;color:var(--text);font-size:14px;outline:none}
+  .inputbar input:focus{border-color:var(--accent)}
+  .inputbar button{padding:12px 20px;border-radius:12px;border:none;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#0f172a;font-weight:700;cursor:pointer}
+  @keyframes pop{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+  .typing{color:#94a3b8;font-style:italic;font-size:13px;align-self:flex-start;padding:6px 4px}
+  ::-webkit-scrollbar{width:8px}::-webkit-scrollbar-thumb{background:#475569;border-radius:4px}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">🏫</div>
+  <div><h1>GPC Bhairunda सहायक</h1><p>Government Polytechnic College, Bhairunda (Nasrullaganj), Sehore</p></div>
+</header>
+
+<div id="chat"></div>
+
+<div class="quick" id="quick"></div>
+
+<div class="inputbar">
+  <input id="inp" placeholder="अपना सवाल पूछें... जैसे: kitni branch hain? 🏫" onkeydown="if(event.key==='Enter')send()">
+  <button onclick="send()">➤</button>
+</div>
+
+<script>
+/* ============ KNOWLEDGE BASE ============ */
+const KB = [
+ {k:["name","college kaunsa","about","परिचय","introduction","basic"],a:"🏫 <b>Government Polytechnic College Bhairunda (Nasrullaganj)</b>\n\n• Location: Semalpani Road, Bhairunda (Nasrullaganj), Sehore, MP – 466331\n• Established: 2011\n• Approval: AICTE, New Delhi\n• Affiliation: RGPV, Bhopal\n• Campus: ~5 acres\n• Type: Government Polytechnic (Full-time Diploma)"},
+ {k:["branch","course","trade","cse","civil","electrical","electronics","textile","कौन सी","कितनी ब्रांच"],a:"🎓 College में <b>5 Diploma branches</b> हैं (हर branch में 60 seats, total 300):\n\n1️⃣ Computer Science & Engineering (CSE)\n2️⃣ Civil Engineering\n3️⃣ Electrical Engineering\n4️⃣ Electronics & Telecommunication (E&T)\n5️⃣ Textile Technology\n\nसभी courses 3 years के हैं और eligibility 10th pass है।"},
+ {k:["seat","intake","सीट"],a:"🪑 हर branch में <b>60 seats</b> हैं। 5 branches × 60 = <b>300 total seats</b>।\n\nCurrent vacant seats के लिए official DTE MP counselling जानकारी check करें।"},
+ {k:["eligibility","योग्यता","10th","admission","प्रवेश","प्रवेश प्रक्रिया","counselling","document","दाखिला"],a:"📝 <b>Admission Information:</b>\n\n• Eligibility: 10th pass\n• Duration: 3 years diploma\n• Admission: MP DTE counselling process के through\n• Documents: 10th marksheet, category/reservation documents (यदि लागू हों), अन्य required documents\n\n⚠️ Admission की current तारीख, cutoff या vacant seats के लिए official DTE MP counselling information check करें।"},
+ {k:["time","open","timing","खुल","बंद","घंटे","बजे"],a:"⏰ College की daily opening/closing timings official website पर confirmed published नहीं हैं।\n\nसटीक timing के लिए college office से संपर्क करें:\n📞 +91-8720033264\n📧 polynsg@gmail.com"},
+ {k:["address","location","कहां","कहाँ","पता","phone","contact","नंबर","email","मोबाइल"],a:"📍 <b>Address:</b> Semalpani Road, Bhairunda (Nasrullaganj), District Sehore, MP – 466331\n\n📞 Phone: +91-8720033264\n📧 Email: polynsg@gmail.com\n🏛️ Govt Email: prinpoly.nasseh@mp.gov.in"},
+ {k:["principal","हेड","बेंसन","bensan"],a:"👨💼 <b>In-charge Principal: Mr. Madhurendra Bensan</b>\n\n• M.Tech – Communication System, IIT-BHU\n• Experience: 9 years\n• Research: Digital Communication, Signal Processing\n\nFaculty list बदल सकती है — current information official website पर verify करें।"},
+ {k:["faculty","staff","teacher","lecturer","शिक्षक","स्टाफ","dabral","sharma","chouhan","pathak","patel"],a:"👨🏫 <b>Key Faculty (official listing):</b>\n\n• Mr. Madhurendra Bensan — In-charge Principal (M.Tech, IIT-BHU)\n• Mr. Shubham Dabral — Senior Lecturer, Electrical (M.Tech, IIT-BHU)\n• Mr. Rohit Chouhan — Civil, Incharge HOD (M.Tech Structural)\n• Mr. Upendra Pathak — Senior Lecturer, Civil (MANIT Bhopal)\n• Dr. Narendra Sharma — Guest Lecturer, CSE (PhD, Mewar University)\n• Mr. Devendra Patel — Guest Lecturer, Electrical (M.Tech, SGSITS)\n• Lab Technicians: Er. Bhupendra Sisodiya, Yogesh Bankariya, Er. Anil Jaiswal, Er. Uttam Thakur\n\n⚠️ Current faculty के लिए official website verify करें।"},
+ {k:["lab","laboratory","लैब"],a:"🔬 College में विभिन्न branches की practical training के लिए laboratories हैं:\n\n• Computer Lab (CSE)\n• Language Lab (CSE)\n• Electrical Lab\n• Textile Lab\n• अन्य department labs"},
+ {k:["library","पुस्तकालय","किताब"],a:"📚 College में students के academic और technical learning के लिए library facility उपलब्ध है।\n\nBooks/journals की exact संख्या तभी बताई जाएगी जब college officially publish करे।"},
+ {k:["hostel","छात्रावास","रहने"],a:"🏠 College website पर hostel section मौजूद है। Homepage पर <b>Girls' hostel को \"Will Start Soon\"</b> बताया गया है।\n\nCurrent hostel availability के लिए college से संपर्क करें: 📞 +91-8720033264"},
+ {k:["sport","खेल","ground","campus","कैंपस"],a:"⚽ Campus facilities में sports, library, laboratories और hostel-related facility शामिल हैं। Gallery में Republic Day, tree plantation जैसी campus activities दिखाई गई हैं।"},
+ {k:["placement","job","नौकरी","package","l&t","company","salary","प्लेसमेंट"],a:"💼 <b>Training & Placement Cell</b> college में है — skill development, career guidance, workshops, internships, campus recruitment, resume building & interview preparation।\n\n📊 <b>Previous placements (historical):</b>\n• Sandeep Pathak (Electrical) — L&T, ₹8.16 LPA\n• Vikas Dwivedi (Electrical) — L&T, ₹8.16 LPA\n• Vivek Kumar (Civil) — L&T, ₹6.00 LPA\n• Bhupendra Keer (Electrical) — Amnex Infotechnologies, ₹4.80 LPA\n• Aman Verma (E&T) — Airtel, ₹4.50 LPA\n• Shubham Verma (CSE) — AMSTECH, ₹4.00 LPA\n• Ankit Verma (CSE) — Jana Small Finance Bank, ₹3.50 LPA\n\n⚠️ ये historical records हैं, current placement guarantee नहीं।"},
+ {k:["tp","training","t&p","internship","nodal","committee","समिति","industry"],a:"🤝 <b>T&P Cell:</b> Nodal Officer — Shubham Dabral; Members — Shubham Bairagi, Devendra Patel\n\n🏭 <b>Industry Institute Cell:</b> Nodal Officer — Anurag Kumar Patel; Members — Upendra Pathak, Mohnish Kumar Jain\n\n📋 <b>Committees:</b> SC/ST Committee, Counsellor Committee, Industry Institute Cell, IEC Cell"},
+ {k:["website","site","link","official","एड्रेस"],a:"🌐 Official website: <b>Government Polytechnic College Bhairunda</b> — pages: About, Courses, Admission, Faculty & Staff, Training & Placement, Gallery\n\nRelated: DTE MP (admission), RGPV (courses/syllabus), AICTE"},
+ {k:["syllabus","timetable","calendar","exam","result","परीक्षा","रिजल्ट","syllabus"],a:"📖 Syllabus, Time Table और Academic Calendar department pages (CSE, Electrical आदि) पर official website पर उपलब्ध हैं। Exam/Result process के लिए RGPV official sources देखें।"},
+ {k:["fee","फीस","scholarship","छात्रवृत्ति"],a:"💰 Fee structure और scholarship details officially publish होने पर ही confirmed मानी जाएंगी।\n\nFee/scholarship की current जानकारी के लिए college office से संपर्क करें: 📞 +91-8720033264"},
+ {k:["hello","hi","hey","namaste","नमस्ते","नमस्कार","हेलो","हाय"],a:"👋 नमस्ते! मैं <b>GPC Bhairunda सहायक</b> हूँ।\n\nमैं college की branches, admission, faculty, placement, facilities और contact की जानकारी दे सकता हूँ। नीचे quick buttons से या सीधे सवाल पूछें! 😊"},
+ {k:["thank","धन्यवाद","shukriya","thanks"],a:"🙏 आपका स्वागत है! कोई और सवाल हो तो ज़रूर पूछें। 😊"}
+];
+
+const FALLBACK = "🤔 माफ़ कीजिए, इस सवाल की जानकारी मेरे पास verified रूप से उपलब्ध नहीं है।\n\n\"इस जानकारी की पुष्टि कॉलेज के official office से करनी होगी।\"\n\n📞 +91-8720033264 | 📧 polynsg@gmail.com";
+
+/* ============ CHAT ENGINE ============ */
+const chat = document.getElementById('chat');
+const inp = document.getElementById('inp');
+
+function addMsg(text, who){
+  const d = document.createElement('div');
+  d.className = 'msg ' + who;
+  d.innerHTML = text;
+  chat.appendChild(d);
+  chat.scrollTop = chat.scrollHeight;
+}
+
+function normalize(s){return s.toLowerCase().replace(/[?।!,.]/g,' ').replace(/\s+/g,' ').trim();}
+
+function findAnswer(q){
+  const nq = normalize(q);
+  // Word-level match scoring
+  let best = null, bestScore = 0;
+  for(const item of KB){
+    let score = 0;
+    for(const kw of item.k){
+      if(nq.includes(kw)) score += kw.length; // longer keyword = better match
+    }
+    if(score > bestScore){bestScore = score; best = item;}
+  }
+  return bestScore > 0 ? best.a : FALLBACK;
+}
+
+function send(text){
+  const q = (text || inp.value).trim();
+  if(!q) return;
+  inp.value = '';
+  addMsg(q.replace(/</g,'&lt;'), 'user');
+  const t = document.createElement('div');
+  t.className = 'typing'; t.textContent = 'सहायक सोच रहा है...';
+  chat.appendChild(t); chat.scrollTop = chat.scrollHeight;
+  setTimeout(()=>{
+    t.remove();
+    addMsg(findAnswer(q), 'bot');
+  }, 500);
+}
+
+/* Quick reply chips */
+const quicks = ["कितनी branch हैं?","Admission कैसे लें?","Placement info","Contact number","College timing","Faculty list","Hostel facility","Library"];
+const qdiv = document.getElementById('quick');
+quicks.forEach(q=>{
+  const b = document.createElement('button');
+  b.textContent = q;
+  b.onclick = ()=>send(q);
+  qdiv.appendChild(b);
+});
+
+/* Welcome */
+addMsg("👋 <b>नमस्ते! मैं GPC Bhairunda सहायक हूँ।</b>\n\nमैं आपके college के बारे में पूरी जानकारी देता हूँ — branches, admission, faculty, placement, labs, hostel और बहुत कुछ।\n\nपूछें: \"कितनी branch हैं?\" 😊", 'bot');
+</script>
+</body>
+</html>
